@@ -28,3 +28,13 @@ class SMSResponse(BaseModel):
     status: str
     cost: float
     created_at: datetime
+
+
+class APIKeyResponse(BaseModel):
+    id: int
+    key: str
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
