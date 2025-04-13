@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import datetime
 
@@ -10,7 +10,7 @@ class UserCreate(BaseModel):
 class UserResponse(BaseModel):
     id: int
     username: str
-    email: str
+    email: EmailStr
     wallet_balance: float
     created_at: datetime
 
@@ -21,6 +21,11 @@ class SMSRequest(BaseModel):
     recipient: str
     message: str
 
+class SMSTemplate(BaseModel):
+    id:int
+    name: Optional[str] = None
+    content: str
+
 class SMSResponse(BaseModel):
     id: int
     recipient: str
@@ -30,11 +35,15 @@ class SMSResponse(BaseModel):
     created_at: datetime
 
 
+class ContactRequest(BaseModel):
+    id: int
+    name: Optional[str]
+    phone_number: str
+
 class APIKeyResponse(BaseModel):
     id: int
     key: str
     is_active: bool
-    created_at: datetime
 
     class Config:
         orm_mode = True

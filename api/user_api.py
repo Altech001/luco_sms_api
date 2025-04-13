@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from db_connection import get_db
-from models import Users, APIKeys
-from schemas import UserResponse  # Assuming this exists in schemas.py
+from sqlalchemy.orm import Session # Assuming this exists in schemas.py
 import secrets
 import string
 
+from database.db_connection import get_db
+from database.schema import APIKeys, Users
+
 router = APIRouter(
-    prefix="/api-keys",
-    tags=["API Keys"]
+    prefix="/api_key",
+    tags=["Luco SMS API Keys"]
 )
 
 def generate_api_key(length: int = 32) -> str:
@@ -48,7 +48,6 @@ def generate_user_api_key(user_id: int, db: Session = Depends(get_db)):
     return {
         "api_key": new_api_key.key,
         "message": "API key generated successfully",
-        "created_at": new_api_key.created_at
     }
 
 @router.get("/list", response_model=list[dict])
@@ -66,7 +65,6 @@ def list_api_keys(user_id: int, db: Session = Depends(get_db)):
         "id": key.id,
         "key": key.key[-8:],  # Show only last 8 characters for security
         "is_active": key.is_active,
-        "created_at": key.created_at
     } for key in api_keys]
 
 @router.put("/deactivate/{key_id}", response_model=dict)
