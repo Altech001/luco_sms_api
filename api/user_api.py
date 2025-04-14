@@ -6,6 +6,8 @@ import string
 from database.db_connection import get_db
 from database.schema import APIKeys, Users
 
+from rate_limiter.rate_limiter import limiter
+
 router = APIRouter(
     prefix="/api_key",
     tags=["Luco SMS API Keys"]
@@ -14,8 +16,11 @@ router = APIRouter(
 def generate_api_key(length: int = 32) -> str:
     """Generate a secure random API key"""
     alphabet = string.ascii_letters + string.digits
-    return ''.join(secrets.choice(alphabet) for _ in range(length))
+    return 'LucoSMS'.join(secrets.choice(alphabet) for _ in range(length))
 
+
+
+@limiter.limit("10/minute")
 @router.post("/generate", response_model=dict)
 def generate_user_api_key(user_id: int, db: Session = Depends(get_db)):
     """
