@@ -1,0 +1,10 @@
+fastapi[all]
+pydantic
+sqlmodel
+africastalking
+python-dotenv
+slowapi
+uvicorn
+python-multipart
+python-jose
+

@@ -16,11 +16,13 @@ router = APIRouter(
 def generate_api_key(length: int = 32) -> str:
     """Generate a secure random API key"""
     alphabet = string.ascii_letters + string.digits
-    return 'LucoSMS'.join(secrets.choice(alphabet) for _ in range(length))
+    random_key = ''.join(secrets.choice(alphabet) for _ in range(length))
+    return f"Luco_{random_key}"
 
 
 
-@limiter.limit("10/minute")
+# @limiter.limit("10/minute")
+
 @router.post("/generate", response_model=dict)
 def generate_user_api_key(user_id: int, db: Session = Depends(get_db)):
     """
