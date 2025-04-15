@@ -7,4 +7,6 @@ slowapi
 uvicorn
 python-multipart
 python-jose
+psycopg2-binary
+
 
