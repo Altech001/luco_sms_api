@@ -8,5 +8,5 @@ uvicorn
 python-multipart
 python-jose
 psycopg2-binary
-
+httpx==0.25.0
 

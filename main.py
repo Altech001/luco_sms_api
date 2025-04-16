@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from database.db_connection import get_db
 from database import schema
@@ -9,13 +9,50 @@ from api.user_api import router
 from routes.luco_user import user_router
 from routes.luco_sms import luco_router
 from routes.promos.promo_code import promo_router
+import asyncio
+import httpx
+import logging
+import os
+from contextlib import asynccontextmanager
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+APP_URL = os.environ.get("APP_URL", "https://luco-sms-api.onrender.com/docs")
+
+# Keep-alive ping interval in seconds (10 minutes = 600 seconds)
+# Set this lower than the 14-minute shutdown time
+PING_INTERVAL = 600
 
 Base.metadata.create_all(bind=engine)
 
 
-app = FastAPI()
+async def keep_alive():
+    """Task that pings the app URL periodically to keep it alive."""
+    async with httpx.AsyncClient() as client:
+        while True:
+            try:
+                logger.info(f"Sending keep-alive ping to {APP_URL}/health")
+                response = await client.get(f"{APP_URL}/health")
+                logger.info(f"Keep-alive response: {response.status_code}")
+            except Exception as e:
+                logger.error(f"Keep-alive ping failed: {str(e)}")
+            
+            
+            await asyncio.sleep(PING_INTERVAL)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    
+    task = asyncio.create_task(keep_alive())
+    yield
+    
+    task.cancel()
 
+# Create the FastAPI app with lifespan
+app = FastAPI(lifespan=lifespan)
 
 origins = [
     "*",
@@ -40,6 +77,10 @@ def root(db: Session = Depends(get_db)):
         "documentation":"https://lucosms.com/docs",
         }
 
+# Add a health check endpoint
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
 
 app.include_router(router=user_router)
 app.include_router(router=router)
