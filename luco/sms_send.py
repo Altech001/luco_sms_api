@@ -7,7 +7,7 @@ load_dotenv()
 SANDBOX_API_KEY = os.getenv("SANDBOX_API_KEY")
 
 class LucoSMS:
-    def __init__(self, api_key=SANDBOX_API_KEY, username='sandbox', sender_id=""):
+    def __init__(self, api_key=SANDBOX_API_KEY, username='altech', sender_id=""):
         africastalking.initialize(username=username, api_key=api_key)
         self.sender_id = sender_id
         self.sms = africastalking.SMS
