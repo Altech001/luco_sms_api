@@ -20,7 +20,7 @@ async def client_send_sms(
     current_user: Users = Depends(get_api_user),
     db: Session = Depends(get_db)
 ):
-    if current_user.wallet_balance < SMS_COST:
+    if current_user.wallet_balance < SMS_COST * len(sms.recipient):
         raise HTTPException(
             status_code=400,
             detail="Insufficient balance in wallet"
@@ -43,15 +43,16 @@ async def client_send_sms(
                 detail="SMS sending failed - Delivery error"
             )
 
-        # Update wallet balance
-        current_user.wallet_balance -= SMS_COST
+        # Update wallet balance for all recipients
+        total_cost = SMS_COST * len(sms.recipient)
+        current_user.wallet_balance -= total_cost
         
         # Record SMS message for each recipient
         sms_messages = []
-        for recipient in sms.recipient:
+        for recipient_number in sms.recipient:
             sms_message = schema.SmsMessages(
                 user_id=current_user.id,
-                recipient=recipient,
+                recipient=recipient_number,
                 message=sms.message,
                 status="sent",
                 cost=SMS_COST
@@ -62,7 +63,7 @@ async def client_send_sms(
         # Record transaction
         transaction = schema.Transactions(
             user_id=current_user.id,
-            amount=-SMS_COST * len(sms.recipient),
+            amount=-total_cost,
             transaction_type="sms_deduction"
         )
         
