@@ -28,7 +28,7 @@ class SMSTemplate(BaseModel):
 
 class SMSResponse(BaseModel):
     id: int
-    recipient: List[str]
+    recipient: str
     message: str
     status: str
     cost: float

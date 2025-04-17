@@ -136,16 +136,16 @@ def delete_sms_template(template_id: int, user_id: int, db: dep_db):
         "message": "SMS template deleted successfully"
     }
 
-# @user_router.get("/sms_history", response_model=List[SMSResponse])
-# def sms_history(user_id: int, db: dep_db):
-#     user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
-#     if not user:
-#         raise HTTPException(detail="User not Found", status_code=404)
-#     message = db.query(schema.SmsMessages).filter(schema.SmsMessages.user_id == user_id).all()
-#     if not message:
-#         raise HTTPException(detail="No message found", status_code=404)
+@user_router.get("/sms_history", response_model=List[SMSResponse])
+def sms_history(user_id: int, db: dep_db):
+    user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
+    if not user:
+        raise HTTPException(detail="User not Found", status_code=404)
+    message = db.query(schema.SmsMessages).filter(schema.SmsMessages.user_id == user_id).all()
+    if not message:
+        raise HTTPException(detail="No message found", status_code=404)
     
-#     return message
+    return message
 
 @user_router.post("/send_sms")
 def send_sms(sms: SMSRequest, user_id: int, db: dep_db):
