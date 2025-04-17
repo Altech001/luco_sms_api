@@ -219,3 +219,120 @@ def deactivate_promo_code(code: str, db: Session = Depends(get_db)):
     
     return {"message": "Promo code deactivated successfully"}
 
+#================ referrals=====
+# Fetch referral codes created by a user
+@promo_router.get("/referral-codes/user/{user_id}", response_model=list[PromoCode])
+def get_user_referral_codes(user_id: int, db: Session = Depends(get_db)):
+    referral_codes = db.query(schema.PromoCode).filter(
+        schema.PromoCode.referrer_id == user_id,
+        schema.PromoCode.is_referral == True
+    ).all()
+    
+    return referral_codes
+
+# Delete a specific referral code
+@promo_router.delete("/referral-codes/{code}")
+def delete_referral_code(code: str, user_id: int, db: Session = Depends(get_db)):
+    referral_code = db.query(schema.PromoCode).filter(
+        schema.PromoCode.code == code,
+        schema.PromoCode.is_referral == True,
+        schema.PromoCode.referrer_id == user_id
+    ).first()
+    
+    if referral_code is None:
+        raise HTTPException(status_code=404, detail="Referral code not found or doesn't belong to this user")
+    
+    # Check if the code has been used
+    usages = db.query(schema.PromoCodeUsage).filter(
+        schema.PromoCodeUsage.promo_code_id == referral_code.id
+    ).count()
+    
+    if usages > 0:
+        # If code has been used, just deactivate it
+        referral_code.is_active = False
+        db.commit()
+        return {"message": "Referral code has been used and is now deactivated"}
+    else:
+        # If code has never been used, it can be completely deleted
+        db.delete(referral_code)
+        db.commit()
+        return {"message": "Referral code deleted successfully"}
+
+
+# Get user's referral rewards
+@promo_router.get("/referral-rewards/{user_id}")
+def get_referral_rewards(user_id: int, db: Session = Depends(get_db)):
+    # Check if user exists
+    user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # 1. Find rewards from others using this user's referral codes
+    referrer_rewards = db.query(schema.PromoCodeUsage).join(
+        schema.PromoCode,
+        schema.PromoCodeUsage.promo_code_id == schema.PromoCode.id
+    ).filter(
+        schema.PromoCode.referrer_id == user_id,
+        schema.PromoCode.is_referral == True,
+        schema.PromoCodeUsage.referrer_reward_paid == False
+    ).all()
+    
+    # 2. Find rewards from this user using others' referral codes
+    referred_rewards = db.query(schema.PromoCodeUsage).join(
+        schema.PromoCode,
+        schema.PromoCodeUsage.promo_code_id == schema.PromoCode.id
+    ).filter(
+        schema.PromoCodeUsage.user_id == user_id,
+        schema.PromoCode.is_referral == True,
+        schema.PromoCodeUsage.referred_reward_paid == False
+    ).all()
+    
+    # Format the results
+    earned_rewards = []
+    for usage in referrer_rewards:
+        promo = db.query(schema.PromoCode).get(usage.promo_code_id)
+        referred_user = db.query(schema.Users).get(usage.user_id)
+        earned_rewards.append({
+            "type": "earned",
+            "amount": promo.referrer_reward,
+            "referred_user": referred_user.username if hasattr(referred_user, "username") else f"User {usage.user_id}",
+            "date_used": usage.created_at,
+            "usage_id": usage.id,
+            "promo_code": promo.code
+        })
+    
+    eligible_rewards = []
+    for usage in referred_rewards:
+        promo = db.query(schema.PromoCode).get(usage.promo_code_id)
+        eligible_rewards.append({
+            "type": "eligible",
+            "amount": promo.discount_value,
+            "referrer_id": promo.referrer_id,
+            "date_used": usage.created_at,
+            "usage_id": usage.id,
+            "promo_code": promo.code
+        })
+    
+    return {
+        "earned_rewards": earned_rewards,
+        "eligible_rewards": eligible_rewards,
+        "total_earned": sum(reward["amount"] for reward in earned_rewards),
+        "total_eligible": sum(reward["amount"] for reward in eligible_rewards)
+    }
+
+# Mark referral reward as paid
+@promo_router.post("/referral-rewards/mark-paid")
+def mark_referral_reward_paid(usage_id: int, reward_type: str, db: Session = Depends(get_db)):
+    usage = db.query(schema.PromoCodeUsage).filter(schema.PromoCodeUsage.id == usage_id).first()
+    if not usage:
+        raise HTTPException(status_code=404, detail="Usage record not found")
+    
+    if reward_type == "referrer":
+        usage.referrer_reward_paid = True
+    elif reward_type == "referred":
+        usage.referred_reward_paid = True
+    else:
+        raise HTTPException(status_code=400, detail="Invalid reward type")
+    
+    db.commit()
+    return {"message": "Reward marked as paid successfully"}

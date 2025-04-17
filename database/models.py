@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 class UserCreate(BaseModel):
@@ -18,7 +18,7 @@ class TopupRequest(BaseModel):
     amount: float
 
 class SMSRequest(BaseModel):
-    recipient: str
+    recipient: List[str]
     message: str
 
 class SMSTemplate(BaseModel):
@@ -28,7 +28,7 @@ class SMSTemplate(BaseModel):
 
 class SMSResponse(BaseModel):
     id: int
-    recipient: str
+    recipient: List[str]
     message: str
     status: str
     cost: float
