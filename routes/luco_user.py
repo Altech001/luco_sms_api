@@ -303,6 +303,16 @@ def add_contact(contact: ContactRequest, user_id: int, db: dep_db):
     
     return contact
 
+@user_router.get("/contact", response_model=List[ContactRequest])
+def fetch_contacts(user_id: int, db: dep_db):
+    user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
+    if not user:
+        raise HTTPException(detail="User not Found", status_code=404)
+    
+    contacts = db.query(schema.Contacts).filter(schema.Contacts.user_id == user_id).all()
+    
+    return contacts
+
 @user_router.patch("/contact")
 def update_contact(contact_id: int, contact_request: ContactRequest, user_id: int, db: dep_db):
     user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
