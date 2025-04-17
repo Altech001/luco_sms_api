@@ -27,9 +27,8 @@ async def client_send_sms(
         )
     
     try:
-        
         sms_client = LucoSMS()
-        response = sms_client.send_message(sms.message, [sms.recipient])
+        response = sms_client.send_message(sms.message, sms.recipient)
         
         if not response or 'SMSMessageData' not in response:
             raise HTTPException(
@@ -47,32 +46,37 @@ async def client_send_sms(
         # Update wallet balance
         current_user.wallet_balance -= SMS_COST
         
-        # Record SMS message
-        sms_message = schema.SmsMessages(
-            user_id=current_user.id,
-            recipient=sms.recipient,
-            message=sms.message,
-            status="sent",
-            cost=SMS_COST
-        )
-        
+        # Record SMS message for each recipient
+        sms_messages = []
+        for recipient in sms.recipient:
+            sms_message = schema.SmsMessages(
+                user_id=current_user.id,
+                recipient=recipient,
+                message=sms.message,
+                status="sent",
+                cost=SMS_COST
+            )
+            sms_messages.append(sms_message)
+            db.add(sms_message)
+
         # Record transaction
         transaction = schema.Transactions(
             user_id=current_user.id,
-            amount=-SMS_COST,
+            amount=-SMS_COST * len(sms.recipient),
             transaction_type="sms_deduction"
         )
         
-        db.add(sms_message)
         db.add(transaction)
         db.commit()
         
-        sms_delivery_report = schema.SmsDeliveryReports(
-            sms_id=sms_message.id,
-            status="delivered"
-        )
+        # Create delivery reports
+        for sms_message in sms_messages:
+            sms_delivery_report = schema.SmsDeliveryReports(
+                sms_id=sms_message.id,
+                status="delivered"
+            )
+            db.add(sms_delivery_report)
         
-        db.add(sms_delivery_report)
         db.commit()
         
         return {
