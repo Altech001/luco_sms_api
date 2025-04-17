@@ -37,7 +37,7 @@ async def client_send_sms(
             )
         
         recipients = response.get('SMSMessageData', {}).get('Recipients', [])
-        if not recipients or recipients[0].get('status') != 'Success':
+        if not recipients or not any(recipient.get('status') == 'Success' for recipient in recipients):
             raise HTTPException(
                 status_code=500,
                 detail="SMS sending failed - Delivery error"
