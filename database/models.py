@@ -19,7 +19,7 @@ class TopupRequest(BaseModel):
 
     
 class SMSRequest(BaseModel):
-    recipient: str # Can be either a single string or list of strings
+    recipient: List[str] # Can be either a single string or list of strings
     message: str
 
 # class SMSRequest(BaseModel):
