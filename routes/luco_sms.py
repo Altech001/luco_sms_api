@@ -27,6 +27,7 @@ async def client_send_sms(
         )
     
     try:
+        
         sms_client = LucoSMS()
         response = sms_client.send_message(sms.message, [sms.recipient])
         
