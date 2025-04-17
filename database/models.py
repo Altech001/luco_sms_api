@@ -19,9 +19,9 @@ class TopupRequest(BaseModel):
 
     
 class SMSRequest(BaseModel):
-    recipient: Union[str, List[str]]  # Can be either a single string or list of strings
+    recipient: str # Can be either a single string or list of strings
     message: str
-    
+
 # class SMSRequest(BaseModel):
 #     recipient: List[str]
 #     message: str
