@@ -5,13 +5,9 @@ import os
 load_dotenv()
 
 class LucoSMS:
-
-    def __init__(self, api_key=None, username='altech'):
-        self.api_key = api_key or os.getenv("LIVE_API_KEY")
-        if not self.api_key:
-            raise ValueError("API key must be provided either in constructor or as environment variable")
-        
-        africastalking.initialize(username=username, api_key=self.api_key)
+    def __init__(self, api_key=SANDBOX_API_KEY, username='sandbox', sender_id="ddddd"):
+        africastalking.initialize(username=username, api_key=api_key)
+        self.sender_id = sender_id
         self.sms = africastalking.SMS
 
     def send_message(self, message, recipients):
