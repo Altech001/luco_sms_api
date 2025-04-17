@@ -87,6 +87,16 @@ def sms_template(template: SMSTemplate, user_id: int, db: dep_db):
     
     return sms_template
 
+@user_router.get("/smstemplate", response_model=List[SMSTemplate])
+def fetch_sms_templates(user_id: int, db: dep_db):
+    user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
+    if not user:
+        raise HTTPException(detail="User not Found", status_code=404)
+    
+    templates = db.query(schema.SmsTemplates).filter(schema.SmsTemplates.user_id == user_id).all()
+    
+    return templates
+
 @user_router.put("/sms_temp_update")
 def sms_template_update(user_id: int, new_content: str, db: dep_db):
     user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
