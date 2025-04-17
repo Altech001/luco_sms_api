@@ -21,8 +21,11 @@ async def client_send_sms(
     current_user: Users = Depends(get_api_user),
     db: Session = Depends(get_db)
 ):
+    # Convert single recipient to list if necessary
+    recipients = sms.recipient if isinstance(sms.recipient, list) else [sms.recipient]
+    
     # Calculate total cost for all messages
-    total_cost = SMS_COST * len(sms.recipients)
+    total_cost = SMS_COST * len(recipients)
     
     if current_user.wallet_balance < total_cost:
         raise HTTPException(
@@ -32,7 +35,7 @@ async def client_send_sms(
     
     try:
         sms_client = LucoSMS()
-        response = sms_client.send_message(sms.message, sms.recipients)
+        response = sms_client.send_message(sms.message, recipients)
         
         if not response or 'SMSMessageData' not in response:
             raise HTTPException(
