@@ -52,6 +52,7 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
     return new_user
 
+#==============ACCOUNT ENDPOINTS START =======================================================
 @user_router.post("/topup")
 def topup_wallet(topup: TopupRequest, user_id: int, db: Session = Depends(get_db)):
     user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
@@ -68,6 +69,45 @@ def topup_wallet(topup: TopupRequest, user_id: int, db: Session = Depends(get_db
     db.commit()
     return {"message": "Wallet topped up successfully", "new_balance": user.wallet_balance}
 
+
+@user_router.get("/wallet-balance")
+def get_wallet_balance(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"balance": user.wallet_balance}
+
+
+@user_router.get("/transaction_history")
+def transaction_history(user_id: int, db: dep_db, skip : int,limit: int = 10):
+    user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
+    if not user:
+        raise HTTPException(detail="User not Found", status_code=404)
+    
+    transactions = db.query(schema.Transactions).filter(schema.Transactions.user_id == user_id).all()
+    transactions = transactions[skip:skip+limit]
+    if not transactions:
+        raise HTTPException(detail="No transactions found", status_code=404)
+    
+    return transactions
+
+
+
+#============== ACCOUNT ENDPOINTS END   =======================================================
+
+@user_router.get("/delivery_report")
+def delivery_report(user_id: int, sms_id : int, db: dep_db):
+    user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
+    if not user:
+        raise HTTPException(detail="User not Found", status_code=404)
+    
+    delivery_reports = db.query(schema.SmsDeliveryReports).filter(schema.SmsDeliveryReports.sms_id == sms_id).all()
+    if not delivery_reports:
+        raise HTTPException(detail="No delivery report found", status_code=404)
+    
+    return {
+        "delivery_reports": delivery_reports
+    }
 
 @user_router.post("/smstemplate")
 def sms_template(template: SMSTemplate, user_id: int, db: dep_db):
@@ -212,39 +252,7 @@ def sms_history(user_id: int, db: dep_db):
 #     except Exception as e:
 #         raise HTTPException(detail=f"SMS sending failed: {str(e)}", status_code=500)
 
-@user_router.get("/transaction_history")
-def transaction_history(user_id: int, db: dep_db):
-    user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
-    if not user:
-        raise HTTPException(detail="User not Found", status_code=404)
-    
-    transactions = db.query(schema.Transactions).filter(schema.Transactions.user_id == user_id).all()
-    if not transactions:
-        raise HTTPException(detail="No transactions found", status_code=404)
-    
-    return transactions
 
-@user_router.get("/wallet-balance")
-def get_wallet_balance(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return {"balance": user.wallet_balance}
-
-@user_router.get("/delivery_report")
-def delivery_report(user_id: int, sms_id : int, db: dep_db):
-    user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
-    if not user:
-        raise HTTPException(detail="User not Found", status_code=404)
-    
-    delivery_reports = db.query(schema.SmsDeliveryReports).filter(schema.SmsDeliveryReports.sms_id == sms_id).all()
-    if not delivery_reports:
-        raise HTTPException(detail="No delivery report found", status_code=404)
-    
-    return {
-        "delivery_reports": delivery_reports
-    }
-    
 @user_router.delete("/delivery_report")
 def delete_delivery_report(report_id: int, user_id: int, db: dep_db):
     user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
@@ -314,12 +322,15 @@ def add_contact(contact: ContactRequest, user_id: int, db: dep_db):
     return contact
 
 @user_router.get("/contact", response_model=List[ContactRequest])
-def fetch_contacts(user_id: int, db: dep_db):
+def fetch_contacts(user_id: int, db: dep_db, skip: int, limit: int = 10):
     user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
     if not user:
         raise HTTPException(detail="User not Found", status_code=404)
     
     contacts = db.query(schema.Contacts).filter(schema.Contacts.user_id == user_id).all()
+    contacts = contacts[skip:skip+limit]
+    if not contacts:
+        raise HTTPException(detail="No contacts found", status_code=404)
     
     return contacts
 
