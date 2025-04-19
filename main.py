@@ -30,7 +30,7 @@ APP_URL = os.environ.get("APP_URL", "https://luco-sms-api.onrender.com")
 >>>>>>> 6672b8e (fix url again >health<)
 
 # Keep-alive ping interval in seconds (10 minutes = 600 seconds)
-# Set this lower than the 14-minute shutdown time
+# Set this lower than the 14-minute shutdown time before
 PING_INTERVAL = 600
 
 Base.metadata.create_all(bind=engine)
