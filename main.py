@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Annotated
 from api.user_api import router
 from routes.luco_user import user_router
+from routes.luco_send_sms.sms_send import sms_router
 from routes.luco_sms import luco_router
 from routes.promos.promo_code import promo_router
 import asyncio
@@ -83,6 +84,7 @@ async def health_check():
     return {"status": "ok"}
 
 app.include_router(router=user_router)
+app.include_router(router=sms_router)
 app.include_router(router=router)
 app.include_router(router=luco_router)
 app.include_router(router=promo_router)

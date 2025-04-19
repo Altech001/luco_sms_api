@@ -92,22 +92,45 @@ def transaction_history(user_id: int, db: dep_db, skip : int,limit: int = 10):
     return transactions
 
 
-
-#============== ACCOUNT ENDPOINTS END   =======================================================
-
-@user_router.get("/delivery_report")
-def delivery_report(user_id: int, sms_id : int, db: dep_db):
+@user_router.delete("/transcation_delete")
+def delete_transaction(transaction_id: int, user_id: int, db: dep_db):
     user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
     if not user:
         raise HTTPException(detail="User not Found", status_code=404)
     
-    delivery_reports = db.query(schema.SmsDeliveryReports).filter(schema.SmsDeliveryReports.sms_id == sms_id).all()
-    if not delivery_reports:
-        raise HTTPException(detail="No delivery report found", status_code=404)
-    
+    transaction = db.query(schema.Transactions).filter(schema.Transactions.id == transaction_id).first()
+    if not transaction:
+        raise HTTPException(detail="No transaction found", status_code=404)
+    db.delete(transaction)
+    db.commit()
     return {
-        "delivery_reports": delivery_reports
+        "message": "Transaction deleted successfully"
     }
+    
+@user_router.delete("/all_transaction")
+def delete_all_transactions(user_id: int, db: dep_db):
+    user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
+    if not user:
+        raise HTTPException(detail="User not Found", status_code=404)
+    
+    transactions = db.query(schema.Transactions).filter(schema.Transactions.user_id == user_id).all()
+    if not transactions:
+        raise HTTPException(detail="No transactions found", status_code=404)
+    for transaction in transactions:
+        db.delete(transaction)
+    db.commit()
+    return {
+        "message": "All transactions deleted successfully"
+    }
+    
+    
+    
+
+
+#============== ACCOUNT ENDPOINTS END   =======================================================
+
+
+#============= SMS TEMPLATE ENDPOINTS START ===================================================
 
 @user_router.post("/smstemplate")
 def sms_template(template: SMSTemplate, user_id: int, db: dep_db):
@@ -159,6 +182,7 @@ def sms_template_update(user_id: int, new_content: str, db: dep_db):
         "new_content": template.content
     }
     
+
 @user_router.delete("/sms_template")
 def delete_sms_template(template_id: int, user_id: int, db: dep_db):
     user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
@@ -176,6 +200,24 @@ def delete_sms_template(template_id: int, user_id: int, db: dep_db):
         "message": "SMS template deleted successfully"
     }
 
+
+#============= SMS TEMPLATE ENDPOINTS START ===================================================
+@user_router.get("/delivery_report")
+def delivery_report(user_id: int, sms_id : int, db: dep_db):
+    user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
+    if not user:
+        raise HTTPException(detail="User not Found", status_code=404)
+    
+    delivery_reports = db.query(schema.SmsDeliveryReports).filter(schema.SmsDeliveryReports.sms_id == sms_id).all()
+    if not delivery_reports:
+        raise HTTPException(detail="No delivery report found", status_code=404)
+    
+    return {
+        "delivery_reports": delivery_reports
+    }
+
+
+
 @user_router.get("/sms_history", response_model=List[SMSResponse])
 def sms_history(user_id: int, db: dep_db):
     user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
@@ -186,71 +228,6 @@ def sms_history(user_id: int, db: dep_db):
         raise HTTPException(detail="No message found", status_code=404)
     
     return message
-
-# @user_router.post("/send_sms")
-# def send_sms(sms: SMSRequest, user_id: int, db: dep_db):
-#     user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
-#     if not user:
-#         raise HTTPException(detail="User not Found", status_code=404)
-    
-#     if user.wallet_balance < SMS_COST:
-#         raise HTTPException(detail="Insufficient balance", status_code=400)
-    
-#     try:        
-#         # Send SMS using LucoSMS without passing API key
-#         sms_client = LucoSMS()
-#         response = sms_client.send_message(sms.message, [sms.recipient])
-        
-#         if not response or 'SMSMessageData' not in response:
-#             raise HTTPException(detail="SMS sending failed - No response data", status_code=500)
-        
-#         recipients = response.get('SMSMessageData', {}).get('Recipients', [])
-#         if not recipients or recipients[0].get('status') != 'Success':
-#             raise HTTPException(detail="SMS sending failed - Delivery error", status_code=500)
-
-#         # Update user wallet balance
-#         user.wallet_balance -= SMS_COST
-        
-#         # Create SMS message record
-#         sms_message = schema.SmsMessages(
-#             user_id=user.id,
-#             recipient=sms.recipient,
-#             message=sms.message,
-#             status="sent",
-#             cost=SMS_COST
-#         )
-        
-#         # Create transaction record
-#         transaction = schema.Transactions(
-#             user_id=user.id,
-#             amount=-SMS_COST,
-#             transaction_type="sms_deduction"
-#         )
-        
-#         # Add and commit SMS message and transaction
-#         db.add(sms_message)
-#         db.add(transaction)
-#         db.commit()
-#         db.refresh(sms_message)
-        
-#         # Create delivery report after SMS message is committed
-#         sms_delivery_report = schema.SmsDeliveryReports(
-#             sms_id=sms_message.id,
-#             status="delivered"
-#         )
-        
-#         db.add(sms_delivery_report)
-#         db.commit()
-        
-#         return {
-#             "status": "success",
-#             "message": "SMS sent successfully",
-#             "sms_id": sms_message.id,
-#             "delivery_status": "delivered"
-#         }
-        
-#     except Exception as e:
-#         raise HTTPException(detail=f"SMS sending failed: {str(e)}", status_code=500)
 
 
 @user_router.delete("/delivery_report")
@@ -370,6 +347,23 @@ def delete_contact(contact_id: int, user_id: int, db: dep_db):
         "message": "Contact deleted successfully"
     }
     
-
+@user_router.delete("/all_contacts")
+def delete_contact( user_id: int, db: dep_db):
+    user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
+    if not user:
+        raise HTTPException(detail="User not Found", status_code=404)
+    
+    contacts = db.query(schema.Contacts).filter(schema.Contacts.user_id == user_id).all()
+    if not contacts:
+        raise HTTPException(detail="No contacts found", status_code=404)
+    
+    for contact in contacts:
+        db.delete(contact)
+        
+    db.commit()
+    
+    return {
+        "message": "All Contacts deleted successfully"
+    }
 #=========================End of User Endpoints =========================
 

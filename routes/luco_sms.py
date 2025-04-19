@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from database import schema
 from sqlalchemy.orm import Session
 from database.db_connection import get_db
-from database.models import SMSRequest
+from database.schemas.sms_schemas import SMSMessageCreate, SMSMessageResponse
 from auth.api_auth import get_api_user
 from luco.sms_send import LucoSMS
 from database.schema import Users
@@ -14,13 +14,13 @@ luco_router = APIRouter(
 
 SMS_COST = 32.0
 
-@luco_router.post("/send-sms")
+@luco_router.post("/send-sms", response_model=SMSMessageResponse)
 async def client_send_sms(
-    sms: SMSRequest,
+    sms: SMSMessageCreate,
     current_user: Users = Depends(get_api_user),
     db: Session = Depends(get_db)
 ):
-    if current_user.wallet_balance < SMS_COST * len(sms.recipient):
+    if current_user.wallet_balance < SMS_COST * len(sms.recipients):
         raise HTTPException(
             status_code=400,
             detail="Insufficient balance in wallet"
@@ -28,7 +28,7 @@ async def client_send_sms(
     
     try:
         sms_client = LucoSMS()
-        response = sms_client.send_message(sms.message, sms.recipient)
+        response = sms_client.send_message(sms.message, sms.recipients)
         
         if not response or 'SMSMessageData' not in response:
             raise HTTPException(
@@ -44,12 +44,12 @@ async def client_send_sms(
             )
 
         # Update wallet balance for all recipients
-        total_cost = SMS_COST * len(sms.recipient)
+        total_cost = SMS_COST * len(sms.recipients)
         current_user.wallet_balance -= total_cost
         
         # Record SMS message for each recipient
         sms_messages = []
-        for recipient_number in sms.recipient:
+        for recipient_number in sms.recipients:
             sms_message = schema.SmsMessages(
                 user_id=current_user.id,
                 recipient=recipient_number,
@@ -80,11 +80,7 @@ async def client_send_sms(
         
         db.commit()
         
-        return {
-            "status": "success",
-            "message": "SMS sent successfully",
-            "remaining_balance": current_user.wallet_balance
-        }
+        return sms_messages[0]  # Return first message as response
         
     except Exception as e:
         raise HTTPException(

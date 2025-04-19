@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, validator
 from typing import Optional, List, Union
 from datetime import datetime
 
@@ -19,12 +19,19 @@ class TopupRequest(BaseModel):
 
     
 class SMSRequest(BaseModel):
-    recipient: List[str] # Can be either a single string or list of strings
     message: str
-
-# class SMSRequest(BaseModel):
-#     recipient: List[str]
-#     message: str
+    recipient: List[str]  # Match the schema expectation
+    
+    @validator('recipient')
+    def validate_phone_numbers(cls, v):
+        for phone in v:
+            if not phone.startswith('+'):
+                raise ValueError('Phone numbers must start with +')
+            if not phone[1:].isdigit():
+                raise ValueError('Phone numbers must contain only digits after +')
+            if not (10 <= len(phone) <= 15):
+                raise ValueError('Phone numbers must be between 10 and 15 characters')
+        return v
 
 class SMSTemplate(BaseModel):
     id:int
