@@ -6,6 +6,7 @@ from database.schemas.sms_schemas import SMSMessageCreate, SMSMessageResponse
 from auth.api_auth import get_api_user
 from luco.sms_send import LucoSMS
 from database.schema import Users
+from rate_limiter.rate_limiter import api_rate_limit
 
 luco_router = APIRouter(
     prefix="/api/v1/client",
@@ -15,6 +16,7 @@ luco_router = APIRouter(
 SMS_COST = 32.0
 
 @luco_router.post("/send-sms", response_model=SMSMessageResponse)
+@api_rate_limit()  # Apply API rate limiting (100/minute)
 async def client_send_sms(
     sms: SMSMessageCreate,
     current_user: Users = Depends(get_api_user),

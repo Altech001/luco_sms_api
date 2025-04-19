@@ -11,6 +11,7 @@ from routes.luco_send_sms.sms_send import sms_router
 from routes.luco_sms import luco_router
 from routes.promos.promo_code import promo_router
 from controller.auto_delete import auto_delete_router
+from rate_limiter.rate_limiter import setup_limiter
 import asyncio
 import httpx
 import logging
@@ -53,8 +54,11 @@ async def lifespan(app: FastAPI):
     
     task.cancel()
 
-# Create the FastAPI app with lifespan
+
 app = FastAPI(lifespan=lifespan)
+
+# Seting up rate limiter
+setup_limiter(app)
 
 origins = [
     "*",

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
-
+from rate_limiter.rate_limiter import rate_limit
 
 from database.db_connection import get_db
 from database import schema
@@ -51,6 +51,7 @@ class PromoCodeResponse(BaseModel):
 
 # Create a new promo code
 @promo_router.post("/promo-codes/", response_model=PromoCode, status_code=status.HTTP_201_CREATED)
+@rate_limit('20/minute')
 def create_promo_code(promo_code: PromoCodeCreate, db: Session = Depends(get_db)):
     existing_code = db.query(schema.PromoCode).filter(schema.PromoCode.code == promo_code.code).first()
     if existing_code:

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Annotated, Optional
-
+from rate_limiter.rate_limiter import standard_rate_limit
 
 from database.db_connection import get_db
 from database import schema
@@ -17,29 +17,21 @@ sms_router = APIRouter(
     tags=["Send SMS"]
 )
 
-
 load_dotenv()
 
 SANDBOX_API_KEY = os.getenv("SANDBOX_API_KEY")
-
-
 
 user_router = APIRouter(
     prefix="/api/v1",
     tags=["Luco SMS"]
 )
 
-
 SMS_COST = 32.0
 
-#Injection Dependency =================================================
-# dep_db: Annotated[Session, Depends(get_db)] = Depends(get_db)
-dep_db  = Annotated[Session, Depends(get_db)]
-
-#========================= User Endpoints ================================
-
+dep_db = Annotated[Session, Depends(get_db)]
 
 @sms_router.post("/send_sms")
+@standard_rate_limit()  # Apply standard rate limiting (60/minute)
 def send_sms(sms: SMSRequest, user_id: int, db: dep_db):
     user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
     if not user:
