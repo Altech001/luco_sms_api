@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from typing import Annotated
 from typing import List
 import hashlib
@@ -346,9 +346,35 @@ def delete_contact(contact_id: int, user_id: int, db: dep_db):
     return {
         "message": "Contact deleted successfully"
     }
+
+#***********Function to delete all the contacts of a user***********
+
+def delete_all_contacts(user_id: int, db: dep_db):
+    try:
+        user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
+        if not user:
+            raise HTTPException(detail="User not Found", status_code=404)
+        
+        contacts = db.query(schema.Contacts).filter(schema.Contacts.user_id == user_id).all()
+        if not contacts:
+            raise HTTPException(detail="No contacts found", status_code=404)
+        
+        for contact in contacts:
+            db.delete(contact)
+            
+        db.commit()
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error during auto-deletion: {str(e)}"
+        )    
+    
+#***********Function to delete all the contacts of a user***********
     
 @user_router.delete("/all_contacts")
-def delete_contact( user_id: int, db: dep_db):
+def delete_contact(backgroundtask: BackgroundTasks, user_id: int, db: dep_db):
     user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
     if not user:
         raise HTTPException(detail="User not Found", status_code=404)
@@ -357,8 +383,7 @@ def delete_contact( user_id: int, db: dep_db):
     if not contacts:
         raise HTTPException(detail="No contacts found", status_code=404)
     
-    for contact in contacts:
-        db.delete(contact)
+    backgroundtask.add_task(delete_all_contacts, user_id, db)
         
     db.commit()
     
