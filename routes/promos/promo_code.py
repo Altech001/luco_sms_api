@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status, APIRouter
+from fastapi import FastAPI, Depends, HTTPException, status, APIRouter, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime
@@ -52,7 +52,9 @@ class PromoCodeResponse(BaseModel):
 # Create a new promo code
 @promo_router.post("/promo-codes/", response_model=PromoCode, status_code=status.HTTP_201_CREATED)
 @rate_limit('20/minute')
-def create_promo_code(promo_code: PromoCodeCreate, db: Session = Depends(get_db)):
+def create_promo_code(
+    request: Request,
+    promo_code: PromoCodeCreate, db: Session = Depends(get_db)):
     existing_code = db.query(schema.PromoCode).filter(schema.PromoCode.code == promo_code.code).first()
     if existing_code:
         raise HTTPException(status_code=400, detail="Promo code already exists")

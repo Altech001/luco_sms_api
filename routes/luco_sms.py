@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from database import schema
 from sqlalchemy.orm import Session
 from database.db_connection import get_db
@@ -18,6 +18,7 @@ SMS_COST = 32.0
 @luco_router.post("/send-sms", response_model=SMSMessageResponse)
 @api_rate_limit()  # Apply API rate limiting (100/minute)
 async def client_send_sms(
+    request: Request,
     sms: SMSMessageCreate,
     current_user: Users = Depends(get_api_user),
     db: Session = Depends(get_db)

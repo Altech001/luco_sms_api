@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from fastapi import FastAPI, Depends, HTTPException, status, APIRouter
+from fastapi import FastAPI, Depends, HTTPException, status, APIRouter, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime
@@ -32,7 +32,7 @@ dep_db = Annotated[Session, Depends(get_db)]
 
 @sms_router.post("/send_sms")
 @standard_rate_limit()  # Apply standard rate limiting (60/minute)
-def send_sms(sms: SMSRequest, user_id: int, db: dep_db):
+def send_sms(request: Request, sms: SMSRequest, user_id: int, db: dep_db):
     user = db.query(schema.Users).filter(schema.Users.id == user_id).first()
     if not user:
         raise HTTPException(detail="User not Found", status_code=404)
