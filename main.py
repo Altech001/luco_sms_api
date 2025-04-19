@@ -10,6 +10,7 @@ from routes.luco_user import user_router
 from routes.luco_send_sms.sms_send import sms_router
 from routes.luco_sms import luco_router
 from routes.promos.promo_code import promo_router
+from controller.auto_delete import auto_delete_router
 import asyncio
 import httpx
 import logging
@@ -88,3 +89,4 @@ app.include_router(router=sms_router)
 app.include_router(router=router)
 app.include_router(router=luco_router)
 app.include_router(router=promo_router)
+app.include_router(router=auto_delete_router)

@@ -4,7 +4,6 @@ import base64
 from passlib.context import CryptContext  # type: ignore
 
 
-# Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def hash_password(password: str) -> str:
