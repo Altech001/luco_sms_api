@@ -23,7 +23,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-APP_URL = os.environ.get("APP_URL", "https://luco-sms-api.onrender.com/docs")
+APP_URL = os.environ.get("APP_URL", "https://luco-sms-api.onrender.com/")
 
 # Keep-alive ping interval in seconds (10 minutes = 600 seconds)
 # Set this lower than the 14-minute shutdown time
