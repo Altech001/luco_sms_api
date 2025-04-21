@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Depends, BackgroundTasks
+from fastapi import FastAPI, Depends, BackgroundTasks, Request
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from database.db_connection import get_db
 from database import schema
@@ -17,7 +18,10 @@ import httpx
 import logging
 import os
 from contextlib import asynccontextmanager
+from analytics.site_analytics import site_analytics_router
 
+from starlette.middleware.base import BaseHTTPMiddleware
+from collections import defaultdict
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -63,7 +67,8 @@ setup_limiter(app)
 
 origins = [
     "*",
-    "*",
+    "http://localhost:8080",
+    "https://lucosms.vercel.app",
 ]
 
 app.add_middleware(
@@ -74,6 +79,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+class AnalyticsMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app):
+        super().__init__(app)
+        self.visits = defaultdict(int)
+        self.ip_visits = defaultdict(lambda: defaultdict(int))
+
+    async def dispatch(self, request, call_next):
+        path = request.url.path
+        client_ip = request.client.host
+        self.visits[path] += 1
+        self.ip_visits[path][client_ip] += 1
+        return await call_next(request)
+
+analytics_middleware = AnalyticsMiddleware(app)
+app.add_middleware(BaseHTTPMiddleware, dispatch=analytics_middleware.dispatch)
+
+
 @app.get("/")
 def root(db: Session = Depends(get_db)):
     return {
@@ -83,6 +106,8 @@ def root(db: Session = Depends(get_db)):
         "description":"This is an API for sending SMS messages and managing user accounts.",
         "documentation":"https://lucosms.com/docs",
         }
+
+
 
 # Add a health check endpoint
 @app.get("/health")
@@ -95,3 +120,4 @@ app.include_router(router=router)
 app.include_router(router=luco_router)
 app.include_router(router=promo_router)
 app.include_router(router=auto_delete_router)
+app.include_router(router=site_analytics_router)
